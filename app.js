@@ -1,42 +1,27 @@
 var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var bodyParser = require('body-parser');
-var mongoose = require('mongoose');
+var socket = require('socket.io');
 
-mongoose.Promise = global.Promise;
-
-mongoose.connect('mongodb://localhost/mean-chat')
-  .then(() =>  console.log('connection successful'))
-  .catch((err) => console.error(err));
-
-var chat = require('./routes/chat');
+// App setup
 var app = express();
-
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({'extended':'false'}));
-app.use(express.static(path.join(__dirname, 'dist')));
-
-app.use('/chat/', chat);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+var server = app.listen(4000, function() {
+  console.log('listening to requests on port 4000.');
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// Static files
+app.use(express.static('public'));
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+// Socket Setup
+var io = socket(server);
+
+io.on('connection', (socket) => {
+  console.log('made socket connection', socket.id);
+
+  socket.on('chat', function(data) {
+    //feedback.inneHTML = "";
+    io.sockets.emit('chat', data);
+  });
+
+  socket.on('typing', function(data){
+    socket.broadcast.emit('typing', data);
+  });
 });
-
-module.exports = app;
